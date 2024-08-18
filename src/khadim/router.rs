@@ -28,7 +28,7 @@ impl Router {
         true
     }
 
-    pub fn fetch_func(&self, path: &'static str, method: &'static str) -> Option<fn()>{
+    pub fn fetch_func(&self, path: &str, method: &str) -> Option<fn()>{
         if self.router_elem_mapper.contains_key(path){
             let re = self.router_elem_mapper.get(path).unwrap();
             if re.method == method {

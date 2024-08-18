@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use std::net::{IpAddr, SocketAddr};
+use http::header;
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::Mutex};
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
@@ -52,9 +53,10 @@ impl Server{
         loop{
             match listener.lock().await.accept().await {
                 Ok(mut conn) => {
+                    let router = self.router.clone();
                     tokio::spawn(async move{
                         let parser = Server::read_request(&mut conn).await;
-                        Server::handle_request(&mut conn, parser).await;
+                        Server::handle_request(&mut conn, parser, router).await;
                     });
                 }
                 Err(err) => {
@@ -79,8 +81,10 @@ impl Server{
         return parsed_req_res;
     }
 
-    async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>){
+    async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>, router: Router){
         let response = create_http_response();
+        let parser = parser.unwrap();
+        router.fetch_func(&parser.path, &parser.method).unwrap()();
         stream.0.write_all(&response.as_bytes()).await.unwrap();
         stream.0.flush().await.unwrap();
     }
