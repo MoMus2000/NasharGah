@@ -5,12 +5,13 @@ use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use anyhow::{anyhow, Error, Result};
 
-use super::parser::Parser;
+use super::{parser::Parser, router::Router};
 use super::response::create_http_response;
 
 pub struct Server{
     pub port: u16,
     pub address: String,
+    router: Router
 }
 
 impl Server{
@@ -20,8 +21,15 @@ impl Server{
         Server::validate_port(port)?;
         let address = address.parse::<IpAddr>()?;
         let address = format!("{}:{}", address, port);
-        let server = Server{port, address};
+        let router = Router::new();
+        let server = Server{port, address, router};
         Ok(server)
+    }
+
+    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn()){
+        if !self.router.add_route(path, method, callback_function){
+           panic!("ERROR adding route ..");
+        }
     }
 
     fn validate_port(port: u16) -> Result<()>{
@@ -43,9 +51,10 @@ impl Server{
         println!("Listening on {}", self.address);
         loop{
             match listener.lock().await.accept().await {
-                Ok(conn) => {
+                Ok(mut conn) => {
                     tokio::spawn(async move{
-                        Server::handle_request(conn).await;
+                        let parser = Server::read_request(&mut conn).await;
+                        Server::handle_request(&mut conn, parser).await;
                     });
                 }
                 Err(err) => {
@@ -55,7 +64,7 @@ impl Server{
         }
     }
 
-    async fn handle_request(mut stream: (TcpStream, SocketAddr)){
+    async fn read_request(stream: &mut (TcpStream, SocketAddr)) -> Option<Parser>{
         let mut buffer : Vec<u8> = Vec::new();
         let mut temp_buffer = [0; 1024];
         let mut parsed_req_res : Option<Parser> = None;
@@ -67,9 +76,11 @@ impl Server{
                 break
             }
         }
+        return parsed_req_res;
+    }
 
+    async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>){
         let response = create_http_response();
-
         stream.0.write_all(&response.as_bytes()).await.unwrap();
         stream.0.flush().await.unwrap();
     }
