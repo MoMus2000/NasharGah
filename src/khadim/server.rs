@@ -81,10 +81,9 @@ impl Server{
 
     async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>, router: Router){
         let parser = parser.unwrap();
-
         let response = router.fetch_func(&parser.path, &parser.method).unwrap()(
-            super::response::Request{},
-            super::response::ResponseWriter{}
+            Request::new(parser),
+            ResponseWriter::new(&stream.0, stream.1)
         );
 
         stream.0.write_all(&response.as_bytes()).await.unwrap();
@@ -111,4 +110,5 @@ impl Server{
             }
         }
     }
+
 }

@@ -3,9 +3,11 @@ mod khadim;
 use crate::khadim::server::Server;
 use crate::khadim::response::{Request, ResponseWriter, create_http_response};
 
-pub fn callback_function(request: Request, writer: ResponseWriter) -> String{
-    println!("Hey there 123");
-    create_http_response()
+pub fn callback_function(request: Request, mut writer: ResponseWriter) -> String{
+    writer.set_response("Status".to_string(), "OK 200".to_string());
+    writer.set_response("Content-Type".to_string(), "text/html".to_string());
+    writer.set_body("<h1> Hello World </h1>".to_string());
+    writer.response()
 }
 
 #[tokio::main]
