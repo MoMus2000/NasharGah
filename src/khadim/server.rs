@@ -4,11 +4,9 @@ use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::Mutex};
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use anyhow::{anyhow, Error, Result};
-use std::str::from_utf8;
-use http::{Response, StatusCode};
-use http::header::CONTENT_TYPE;
-use crate::khadim::parser::Parser;
-use crate::khadim::response::create_http_response;
+
+use super::parser::Parser;
+use super::response::create_http_response;
 
 pub struct Server{
     pub port: u16,
@@ -60,11 +58,12 @@ impl Server{
     async fn handle_request(mut stream: (TcpStream, SocketAddr)){
         let mut buffer : Vec<u8> = Vec::new();
         let mut temp_buffer = [0; 1024];
+        let mut parsed_req_res : Option<Parser> = None;
         loop {
             let index = stream.0.read(&mut temp_buffer).await.unwrap();
             buffer.extend_from_slice(&temp_buffer[..index]);
             if let Some(parsed_req) = Server::check_parsed_result(&buffer){
-                println!("{:?}", parsed_req);
+                parsed_req_res = Some(parsed_req);
                 break
             }
         }
