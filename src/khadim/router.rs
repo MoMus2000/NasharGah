@@ -12,7 +12,7 @@ impl Router {
         }
     }
 
-    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn()) -> bool{
+    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn() -> String) -> bool{
         let element = RouterElement{
             path,
             callback_function,
@@ -28,7 +28,7 @@ impl Router {
         true
     }
 
-    pub fn fetch_func(&self, path: &str, method: &str) -> Option<fn()>{
+    pub fn fetch_func(&self, path: &str, method: &str) -> Option<fn() -> String>{
         if self.router_elem_mapper.contains_key(path){
             let re = self.router_elem_mapper.get(path).unwrap();
             if re.method == method {
@@ -43,6 +43,6 @@ impl Router {
 #[derive(Clone, Debug)]
 pub struct RouterElement {
     pub path: &'static str,
-    pub callback_function: fn(),
+    pub callback_function: fn() -> String,
     pub method: &'static str
 }

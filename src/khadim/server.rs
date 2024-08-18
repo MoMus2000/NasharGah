@@ -27,7 +27,7 @@ impl Server{
         Ok(server)
     }
 
-    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn()){
+    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn() -> String){
         if !self.router.add_route(path, method, callback_function){
            panic!("ERROR adding route ..");
         }
@@ -82,9 +82,8 @@ impl Server{
     }
 
     async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>, router: Router){
-        let response = create_http_response();
         let parser = parser.unwrap();
-        router.fetch_func(&parser.path, &parser.method).unwrap()();
+        let response = router.fetch_func(&parser.path, &parser.method).unwrap()();
         stream.0.write_all(&response.as_bytes()).await.unwrap();
         stream.0.flush().await.unwrap();
     }
