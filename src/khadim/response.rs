@@ -1,3 +1,11 @@
+pub struct ResponseWriter{
+
+}
+
+pub struct Request {
+
+}
+
 pub fn create_http_response() -> String {
     let body = r#"
         <!DOCTYPE html>

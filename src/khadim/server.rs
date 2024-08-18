@@ -1,13 +1,11 @@
 #![allow(dead_code)]
 use std::net::{IpAddr, SocketAddr};
-use http::header;
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::Mutex};
 use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use anyhow::{anyhow, Error, Result};
 
-use super::{parser::Parser, router::Router};
-use super::response::create_http_response;
+use super::{parser::Parser, response::{Request,ResponseWriter}, router::Router};
 
 pub struct Server{
     pub port: u16,
@@ -27,7 +25,7 @@ impl Server{
         Ok(server)
     }
 
-    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn() -> String){
+    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn(Request, ResponseWriter) -> String){
         if !self.router.add_route(path, method, callback_function){
            panic!("ERROR adding route ..");
         }
@@ -83,7 +81,12 @@ impl Server{
 
     async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>, router: Router){
         let parser = parser.unwrap();
-        let response = router.fetch_func(&parser.path, &parser.method).unwrap()();
+
+        let response = router.fetch_func(&parser.path, &parser.method).unwrap()(
+            super::response::Request{},
+            super::response::ResponseWriter{}
+        );
+
         stream.0.write_all(&response.as_bytes()).await.unwrap();
         stream.0.flush().await.unwrap();
     }
