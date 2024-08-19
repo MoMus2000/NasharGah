@@ -31,7 +31,7 @@ impl<'a> ResponseWriter<'a> {
         self.set_response("Body".to_string(), body);
     }
 
-    pub fn set_body_from_html(&mut self, file_path: String){
+    pub fn set_body_from_html(&mut self, file_path: &str){
         let mut file = std::fs::File::open(file_path).unwrap();
         let mut body = String::new();
         file.read_to_string(&mut body).unwrap();
