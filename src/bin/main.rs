@@ -3,9 +3,6 @@ use nashar_gah::khadim::response::{Request, ResponseWriter};
 use nashar_gah::khadim::http_status::HttpStatus;
 use nashar_gah::khadim::caller::AsyncReturn;
 use meta_tags::callback;
-use std::pin::Pin;
-use std::future::Future;
-use std::boxed::Box;
 
 
 pub fn callback_function<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> AsyncReturn{
