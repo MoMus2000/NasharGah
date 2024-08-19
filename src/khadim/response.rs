@@ -1,9 +1,9 @@
 use std::{collections::HashMap, io::Read, net::SocketAddr};
 use tokio::net::TcpStream;
 use std::fmt;
-use crate::AsyncReturn;
 
 use super::parser::Parser;
+use super::caller::AsyncReturn;
 use std::boxed::Box;
 
 pub struct ResponseWriter<'a>{
