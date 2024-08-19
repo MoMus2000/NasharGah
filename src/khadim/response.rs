@@ -61,6 +61,7 @@ impl<'a> ResponseWriter<'a> {
             "HTTP/1.1 {} \r\n\
             Content-Type: {}; charset=utf-8\r\n\
             Content-Length: {}\r\n\
+            Connection: Close\r\n\
             \r\n\
             {}",
             self.response_map.get("Status").unwrap(),

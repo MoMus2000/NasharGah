@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use std::net::{IpAddr, SocketAddr};
+use std::net::{IpAddr, Shutdown, SocketAddr};
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::Mutex};
 use tokio::net::{TcpListener, TcpStream};
 use anyhow::{anyhow, Error, Result};
@@ -57,6 +57,7 @@ impl Server{
                     tokio::spawn(async move{
                         let parser = Server::read_request(&mut conn).await;
                         Server::handle_request(&mut conn, parser, router).await;
+                        conn.0.shutdown().await.unwrap();
                     });
                 }
                 Err(err) => {
