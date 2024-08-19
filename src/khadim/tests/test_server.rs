@@ -1,4 +1,5 @@
-use crate::khadim::parser::Parser;
+#![allow(dead_code)]
+// use crate::khadim::parser::Parser;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right

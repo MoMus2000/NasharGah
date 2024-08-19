@@ -1,7 +1,10 @@
-use std::{collections::HashMap, net::SocketAddr};
+use std::{collections::HashMap, io::Read, net::SocketAddr};
 use tokio::net::TcpStream;
 use std::fmt;
+use crate::AsyncReturn;
+
 use super::parser::Parser;
+use std::boxed::Box;
 
 pub struct ResponseWriter<'a>{
     pub conn: &'a TcpStream,
@@ -28,11 +31,20 @@ impl<'a> ResponseWriter<'a> {
         self.set_response("Body".to_string(), body);
     }
 
+    pub fn set_body_from_html(&mut self, file_path: String){
+        let mut file = std::fs::File::open(file_path).unwrap();
+        let mut body = String::new();
+        file.read_to_string(&mut body).unwrap();
+        self.set_response("Content-Length".to_string(), format!("{}", body.len()));
+        self.set_response("Body".to_string(), body);
+        self.set_content_type("text/html".to_string());
+    }
+
     pub fn set_status(&mut self, status_code : impl fmt::Display) {
         self.response_map.insert("Status".to_string(), status_code.to_string());
     }
 
-    pub fn response(&mut self) -> String {
+    pub fn response(&mut self) -> AsyncReturn{
         if !self.response_map.contains_key("Content-Type"){
             self.set_response(
                 "Content-Type".to_string(),
@@ -70,7 +82,9 @@ impl<'a> ResponseWriter<'a> {
             self.response_map.get("Body").unwrap(),
         );
 
-        payload
+        Box::pin(async move {
+            payload
+        })
     }
 
 }

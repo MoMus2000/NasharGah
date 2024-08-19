@@ -1,6 +1,6 @@
 #![allow(dead_code)]
-use std::net::{IpAddr, Shutdown, SocketAddr};
-use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::Mutex};
+use std::net::{IpAddr, SocketAddr};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 use anyhow::{anyhow, Error, Result};
 
@@ -75,7 +75,9 @@ impl Server{
             let index = stream.0.read(&mut temp_buffer).await.unwrap();
             buffer.extend_from_slice(&temp_buffer[..index]);
             if let Some(parsed_req) = Server::check_parsed_result(&buffer){
-                parsed_req_res = Some(parsed_req);
+                if parsed_req_res.is_none(){
+                    parsed_req_res = Some(parsed_req);
+                }
                 break
             }
         }

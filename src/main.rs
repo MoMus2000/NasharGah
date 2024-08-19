@@ -9,18 +9,14 @@ use std::future::Future;
 type AsyncReturn = Pin<Box<dyn Future<Output = String> + Send>>;
 use std::boxed::Box;
 
-
 pub fn callback_function<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> AsyncReturn{
     writer.set_status(HttpStatus::Ok);
     writer.set_body("<h1> Hello World </h1>".to_string());
     writer.set_content_type("text/html".to_string());
-
-    let response = writer.response();
-
-    Box::pin(async move {
-        response
-    })
+    writer.response()
 }
+
+
 
 #[tokio::main]
 async fn main() {
