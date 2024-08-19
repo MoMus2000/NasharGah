@@ -1,11 +1,11 @@
 use nashar_gah::khadim::server::Server;
 use nashar_gah::khadim::response::{Request, ResponseWriter};
 use nashar_gah::khadim::http_status::HttpStatus;
-use nashar_gah::khadim::caller::AsyncReturn;
 use meta_tags::callback;
 
 
-pub fn callback_function<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> AsyncReturn{
+#[callback]
+pub fn callback_function(_request: Request, mut writer: ResponseWriter) {
     writer.set_status(HttpStatus::Ok);
     writer.set_body("<h1> Hello World </h1>".to_string());
     writer.set_content_type("text/html".to_string());
