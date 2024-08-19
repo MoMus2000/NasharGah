@@ -7,9 +7,10 @@ All Purpose Http Server
 use nashar_gah::khadim::server::Server;
 use nashar_gah::khadim::response::{Request, ResponseWriter};
 use nashar_gah::khadim::http_status::HttpStatus;
-use meta_tags::callback;
+use nashar_gah::api_callback;
 
-#[callback]
+
+#[api_callback]
 pub fn callback_function(_request: Request, mut writer: ResponseWriter) {
     writer.set_status(HttpStatus::Ok);
     writer.set_body("<h1> Hello World </h1>".to_string());
@@ -17,7 +18,7 @@ pub fn callback_function(_request: Request, mut writer: ResponseWriter) {
     writer.response()
 }
 
-#[callback]
+#[api_callback]
 pub fn serve_homepage(_request: Request, mut writer: ResponseWriter){
     writer.set_status(HttpStatus::Ok);
     writer.set_body_from_html("/Users/mmuhammad/Desktop/projects/nashar_gah/assets/index.html");
@@ -30,7 +31,6 @@ pub async fn main() {
     let address = "127.0.0.1";
     let mut server = Server::new(port, address).await.unwrap();
     server.add_route("/", "GET", serve_homepage);
-    server.add_route("/mustafa", "GET", serve_homepage);
     server.add_route("/call_back", "GET", callback_function);
     server.listen().await;
 }
@@ -59,4 +59,15 @@ Running 1m test @ http://localhost:8080
   32805 requests in 1.00m, 3.79MB read
 Requests/sec:    545.98
 Transfer/sec:     64.51K
+
+19th August 2024 (Returning a simple html page)
+projects/nashar_gah [main] $ wrk -t5 -c100 -d60s http://localhost:8080
+Running 1m test @ http://localhost:8080
+  5 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.83ms    6.06ms 190.01ms   95.57%
+    Req/Sec    24.65k     9.72k  100.80k    80.96%
+  7334360 requests in 1.00m, 25.33GB read
+Requests/sec: 122106.62
+Transfer/sec:    431.80M
 ```

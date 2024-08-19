@@ -55,8 +55,28 @@ impl Server{
                 Ok(mut conn) => {
                     let router = self.router.clone();
                     tokio::spawn(async move{
-                        let parser = Server::read_request(&mut conn).await;
-                        Server::handle_request(&mut conn, parser, router).await;
+                        let mut keep_alive = true;
+                        loop {
+                            let parser = Server::read_request(&mut conn).await;
+                            match &parser {
+                                Some(pa) => {
+                                    let headers = &pa.header;
+                                    if let Some(connection_header) = headers.get("Connection") {
+                                        if connection_header == "close" {
+                                            keep_alive = false;
+                                        }
+                                    } 
+                                }
+                                None => {
+                                    break
+                                }
+                            }
+                            Server::handle_request(&mut conn, parser, &router).await;
+
+                            if !keep_alive {
+                                break
+                            }
+                        }
                         conn.0.shutdown().await.unwrap();
                     });
                 }
@@ -84,7 +104,7 @@ impl Server{
         return parsed_req_res;
     }
 
-    async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>, router: Router){
+    async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>, router: &Router){
         let parser = parser.unwrap();
         let response = router.fetch_func(&parser.path, &parser.method).unwrap()(
             Request::new(parser),

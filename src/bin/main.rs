@@ -1,10 +1,10 @@
 use nashar_gah::khadim::server::Server;
 use nashar_gah::khadim::response::{Request, ResponseWriter};
 use nashar_gah::khadim::http_status::HttpStatus;
-use meta_tags::callback;
+use nashar_gah::api_callback;
 
 
-#[callback]
+#[api_callback]
 pub fn callback_function(_request: Request, mut writer: ResponseWriter) {
     writer.set_status(HttpStatus::Ok);
     writer.set_body("<h1> Hello World </h1>".to_string());
@@ -12,7 +12,7 @@ pub fn callback_function(_request: Request, mut writer: ResponseWriter) {
     writer.response()
 }
 
-#[callback]
+#[api_callback]
 pub fn serve_homepage(_request: Request, mut writer: ResponseWriter){
     writer.set_status(HttpStatus::Ok);
     writer.set_body_from_html("/Users/mmuhammad/Desktop/projects/nashar_gah/assets/index.html");
@@ -25,7 +25,6 @@ pub async fn main() {
     let address = "127.0.0.1";
     let mut server = Server::new(port, address).await.unwrap();
     server.add_route("/", "GET", serve_homepage);
-    server.add_route("/mustafa", "GET", serve_homepage);
     server.add_route("/call_back", "GET", callback_function);
     server.listen().await;
 }

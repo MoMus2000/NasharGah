@@ -17,7 +17,6 @@ impl Parser{
         let mut header_map : HashMap<String, String>= HashMap::new();
         for header in headers{
             if header_map.contains_key(header.name){
-                println!("Collision !");
             }
             else{
                 let value = std::str::from_utf8(header.value).unwrap();
