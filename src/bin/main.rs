@@ -2,6 +2,11 @@ use nashar_gah::khadim::server::Server;
 use nashar_gah::khadim::response::{Request, ResponseWriter};
 use nashar_gah::khadim::http_status::HttpStatus;
 use nashar_gah::khadim::caller::AsyncReturn;
+use meta_tags::callback;
+use std::pin::Pin;
+use std::future::Future;
+use std::boxed::Box;
+
 
 pub fn callback_function<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> AsyncReturn{
     writer.set_status(HttpStatus::Ok);
@@ -10,7 +15,8 @@ pub fn callback_function<'a>(_request: Request, mut writer: ResponseWriter<'a>) 
     writer.response()
 }
 
-pub fn serve_homepage<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> AsyncReturn{
+#[callback]
+pub fn serve_homepage(_request: Request, mut writer: ResponseWriter){
     writer.set_status(HttpStatus::Ok);
     writer.set_body_from_html("/Users/mmuhammad/Desktop/projects/nashar_gah/assets/index.html");
     writer.response()
@@ -22,6 +28,7 @@ pub async fn main() {
     let address = "127.0.0.1";
     let mut server = Server::new(port, address).await.unwrap();
     server.add_route("/", "GET", serve_homepage);
+    server.add_route("/mustafa", "GET", serve_homepage);
     server.add_route("/call_back", "GET", callback_function);
     server.listen().await;
 }
