@@ -1,14 +1,7 @@
-mod khadim;
-
-use crate::khadim::server::Server;
-use crate::khadim::response::{Request, ResponseWriter};
-use crate::khadim::http_status::HttpStatus;
-
-use std::pin::Pin;
-use std::future::Future;
-use std::boxed::Box;
-
-type AsyncReturn = Pin<Box<dyn Future<Output = String> + Send>>;
+use nashar_gah::khadim::server::Server;
+use nashar_gah::khadim::response::{Request, ResponseWriter};
+use nashar_gah::khadim::http_status::HttpStatus;
+use nashar_gah::khadim::caller::AsyncReturn;
 
 pub fn callback_function<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> AsyncReturn{
     writer.set_status(HttpStatus::Ok);
@@ -24,7 +17,7 @@ pub fn serve_homepage<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> 
 }
 
 #[tokio::main]
-async fn main() {
+pub async fn main() {
     let port = "8080";
     let address = "127.0.0.1";
     let mut server = Server::new(port, address).await.unwrap();
