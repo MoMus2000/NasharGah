@@ -1,13 +1,25 @@
 mod khadim;
 
 use crate::khadim::server::Server;
-use crate::khadim::response::{Request, ResponseWriter, create_http_response};
+use crate::khadim::response::{Request, ResponseWriter};
+use crate::khadim::http_status::HttpStatus;
 
-pub fn callback_function(request: Request, mut writer: ResponseWriter) -> String{
-    writer.set_response("Status".to_string(), "OK 200".to_string());
-    writer.set_response("Content-Type".to_string(), "text/html".to_string());
+use std::pin::Pin;
+use std::future::Future;
+type AsyncReturn = Pin<Box<dyn Future<Output = String> + Send>>;
+use std::boxed::Box;
+
+
+pub fn callback_function<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> AsyncReturn{
+    writer.set_status(HttpStatus::Ok);
     writer.set_body("<h1> Hello World </h1>".to_string());
-    writer.response()
+    writer.set_content_type("text/html".to_string());
+
+    let response = writer.response();
+
+    Box::pin(async move {
+        response
+    })
 }
 
 #[tokio::main]

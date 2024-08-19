@@ -1,11 +1,14 @@
 #![allow(dead_code)]
 use std::net::{IpAddr, SocketAddr};
 use tokio::{io::{AsyncReadExt, AsyncWriteExt}, sync::Mutex};
-use std::sync::Arc;
 use tokio::net::{TcpListener, TcpStream};
 use anyhow::{anyhow, Error, Result};
 
 use super::{parser::Parser, response::{Request,ResponseWriter}, router::Router};
+
+use std::pin::Pin;
+use std::future::Future;
+type AsyncReturn = Pin<Box<dyn Future<Output = String> + Send>>;
 
 pub struct Server{
     pub port: u16,
@@ -25,7 +28,7 @@ impl Server{
         Ok(server)
     }
 
-    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn(Request, ResponseWriter) -> String){
+    pub fn add_route(&mut self, path: &'static str, method: &'static str, callback_function: fn(Request, ResponseWriter) -> AsyncReturn){
         if !self.router.add_route(path, method, callback_function){
            panic!("ERROR adding route ..");
         }
@@ -46,10 +49,9 @@ impl Server{
 
     pub async fn listen(&mut self){
         let listener = self.bind().await.unwrap();
-        let listener = Arc::new(Mutex::new(listener));
         println!("Listening on {}", self.address);
         loop{
-            match listener.lock().await.accept().await {
+            match listener.accept().await {
                 Ok(mut conn) => {
                     let router = self.router.clone();
                     tokio::spawn(async move{
@@ -85,8 +87,7 @@ impl Server{
             Request::new(parser),
             ResponseWriter::new(&stream.0, stream.1)
         );
-
-        stream.0.write_all(&response.as_bytes()).await.unwrap();
+        stream.0.write_all(&response.await.as_bytes()).await.unwrap();
         stream.0.flush().await.unwrap();
     }
 

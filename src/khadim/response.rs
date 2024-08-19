@@ -1,6 +1,6 @@
 use std::{collections::HashMap, net::SocketAddr};
 use tokio::net::TcpStream;
-
+use std::fmt;
 use super::parser::Parser;
 
 pub struct ResponseWriter<'a>{
@@ -15,39 +15,43 @@ impl<'a> ResponseWriter<'a> {
         ResponseWriter{conn, address, response_map}
     }
 
-    pub fn set_response(&mut self, key: String, value: String) -> Option<String>{
+    fn set_response(&mut self, key: String, value: String) -> Option<String>{
         return self.response_map.insert(key, value) 
     }
 
-    pub fn set_body(&mut self, body: String){
-        self.response_map.insert("Content-Length".to_string(), format!("{}", body.len()));
-        self.response_map.insert("Body".to_string(), body);
+    pub fn set_content_type(&mut self, value: String) -> Option<String>{
+        return self.response_map.insert("Content-Type".to_string(), value);
     }
 
-    pub fn set_status(&mut self, status_code : String) {
-        self.response_map.insert("Status".to_string(), status_code);
+    pub fn set_body(&mut self, body: String){
+        self.set_response("Content-Length".to_string(), format!("{}", body.len()));
+        self.set_response("Body".to_string(), body);
+    }
+
+    pub fn set_status(&mut self, status_code : impl fmt::Display) {
+        self.response_map.insert("Status".to_string(), status_code.to_string());
     }
 
     pub fn response(&mut self) -> String {
         if !self.response_map.contains_key("Content-Type"){
-            self.response_map.insert(
+            self.set_response(
                 "Content-Type".to_string(),
                 "text/plain".to_string()
             );
         }
 
         if !self.response_map.contains_key("Body"){
-            self.response_map.insert(
+            self.set_response(
                 "Body".to_string(),
                 "".to_string()
             );
-            self.response_map.insert(
+            self.set_response(
                 "Content-Length".to_string(),
                 "0".to_string()
             );
         }
         if !self.response_map.contains_key("Status"){
-            self.response_map.insert(
+            self.set_response(
                 "Status".to_string(),
                 "200 OK".to_string()
             );
@@ -71,40 +75,11 @@ impl<'a> ResponseWriter<'a> {
 }
 
 pub struct Request {
-    pub request: Parser
+    pub request: Parser,
 }
 
 impl Request{
     pub fn new(request: Parser) -> Self{
         Request{request}
     }
-}
-
-pub fn create_http_response() -> String {
-    let body = r#"
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>My Page</title>
-        </head>
-        <body>
-            <h1>Welcome!</h1>
-            <p>Hello World <b> This is mustafa Muhamamd </p>
-        </body>
-        </html>
-    "#;
-
-    let content_length = body.len();
-
-    format!(
-        "HTTP/1.1 200 OK\r\n\
-         Content-Type: text/html; charset=utf-8\r\n\
-         Content-Length: {}\r\n\
-         \r\n\
-         {}",
-        content_length,
-        body
-    )
 }
