@@ -8,7 +8,7 @@ use super::{parser::Parser, response::{Request,ResponseWriter}, router::Router};
 
 use std::pin::Pin;
 use std::future::Future;
-type AsyncReturn = Pin<Box<dyn Future<Output = String> + Send>>;
+type AsyncReturn = Result<Pin<Box<dyn Future<Output = String> + Send>>, Box<dyn std::error::Error>>;
 
 pub struct Server{
     pub port: u16,
@@ -71,8 +71,7 @@ impl Server{
                                     break
                                 }
                             }
-                            Server::handle_request(&mut conn, parser, &router).await;
-
+                            Server::handle_request(&mut conn, parser.clone(), &router).await;
                             if !keep_alive {
                                 break
                             }
@@ -109,13 +108,37 @@ impl Server{
         return parsed_req_res;
     }
 
-    async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>, router: &Router){
+    async fn handle_request(stream: &mut (TcpStream, SocketAddr), parser: Option<Parser>, router: &Router) {
         let parser = parser.unwrap();
-        let response = router.fetch_func(&parser.path, &parser.method).unwrap()(
-            Request::new(parser),
+        let fetched_func = match router.fetch_func(&parser.path, &parser.method){
+            Some(func) => func,
+            None => {
+                use super::caller::default_404;
+                let resp = match default_404(
+                    Request::new(parser),
+                    ResponseWriter::new(&stream.0, stream.1)
+                ){
+                    Ok(res) => res,
+                    Err(_) => {
+                        return
+                    },
+                };
+                stream.0.write_all(&resp.await.as_bytes()).await.unwrap();
+                stream.0.flush().await.unwrap();
+                return
+            }
+        };
+        let resp = match fetched_func(
+            Request::new(parser.clone()),
             ResponseWriter::new(&stream.0, stream.1)
-        );
-        stream.0.write_all(&response.await.as_bytes()).await.unwrap();
+        ){
+            Ok(result) => result,
+            Err(e) => {
+                println!("Error {e}");
+                return
+            }
+        };
+        stream.0.write_all(resp.await.as_bytes()).await.unwrap();
         stream.0.flush().await.unwrap();
     }
 

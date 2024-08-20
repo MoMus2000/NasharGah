@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use httparse::Request;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Parser{
     pub method: String,
     pub path: String,

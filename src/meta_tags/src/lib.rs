@@ -13,14 +13,14 @@ pub fn api_callback(_attr: TokenStream, input: TokenStream) -> TokenStream {
     // Generate the transformed function
 
     let transformed_fn = quote! {
-        pub fn #name<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> std::pin::Pin<std::boxed::Box<dyn std::future::Future<Output = String> + Send>> {
+        pub fn #name<'a>(_request: Request, mut writer: ResponseWriter<'a>) -> Result<std::pin::Pin<std::boxed::Box<dyn std::future::Future<Output = String> + Send>> , Box<dyn std::error::Error>> {
             // Original function body
             let result = (|| {
                 // Execute the original function body
                 #body
-            })();
+            })()?;
 
-            result
+            Ok(result)
         }
     };
 

@@ -4,6 +4,7 @@ use std::fmt;
 
 use super::parser::Parser;
 use super::caller::AsyncReturn;
+use super::http_header::HttpHeader;
 use std::boxed::Box;
 
 pub struct ResponseWriter<'a>{
@@ -24,6 +25,13 @@ impl<'a> ResponseWriter<'a> {
 
     pub fn set_content_type(&mut self, value: String) -> Option<String>{
         return self.response_map.insert("Content-Type".to_string(), value);
+    }
+
+    pub fn set_header(&mut self, header: HttpHeader) -> Option<String>{
+        let parsed_header = header.as_str();
+        let key = parsed_header.0;
+        let value = parsed_header.1;
+        return self.response_map.insert(key.to_string(), value.to_string());
     }
 
     pub fn set_body(&mut self, body: String){
@@ -81,9 +89,9 @@ impl<'a> ResponseWriter<'a> {
             self.response_map.get("Body").unwrap(),
         );
 
-        Box::pin(async move {
+        Ok(Box::pin(async move {
             payload
-        })
+        }))
     }
 
 }

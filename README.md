@@ -34,6 +34,7 @@ pub async fn main() {
     server.add_route("/call_back", "GET", callback_function);
     server.listen().await;
 }
+
 ```
 
 ## M1 Macbook Tuning

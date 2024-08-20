@@ -2,9 +2,10 @@
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::future::Future;
+
 use super::response::{Request, ResponseWriter};
 
-type AsyncReturn = Pin<Box<dyn Future<Output = String> + Send>>;
+type AsyncReturn = Result<Pin<Box<dyn Future<Output = String> + Send>>, Box<dyn std::error::Error>>;
 
 #[derive(Clone)]
 pub struct Router{
@@ -36,7 +37,10 @@ impl Router {
 
     pub fn fetch_func(&self, path: &str, method: &str) -> Option<fn(Request, ResponseWriter) -> AsyncReturn>{
         if self.router_elem_mapper.contains_key(path){
-            let re = self.router_elem_mapper.get(path).unwrap();
+            let re = match self.router_elem_mapper.get(path){
+                Some(r) => r,
+                None => return None
+            };
             if re.method == method {
                 return Some(re.callback_function)
             }
