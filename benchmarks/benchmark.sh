@@ -93,7 +93,7 @@ case $LANGUAGE in
         go run main.go &
         GO_PID=$!
         sleep 5
-        #wrk -t"$NUM_THREADS" -c"$NUM_CONNECTIONS" -d"$DURATION" http://localhost:8080
+        wrk -t"$NUM_THREADS" -c"$NUM_CONNECTIONS" -d"$DURATION" http://localhost:8080
         kill $GO_PID
         ;;
     *)

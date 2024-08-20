@@ -49,33 +49,37 @@ ulimit -n 6553
 
 ## Performance Log
 
-### 18th August 2024 (Returning Text)
+### 18th August 2024 
+
+Returning Text
 
 ```bash
 projects/nashar_gah [main] $ wrk -t5 -c100 -d60s http://localhost:8080
-Running 1m test @ http://localhost:8080
-  5 threads and 100 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.44ms  330.79us   4.82ms   94.73%
-    Req/Sec     6.06k     2.18k    7.54k    90.00%
-  32805 requests in 1.00m, 3.79MB read
-Requests/sec:    545.98
-Transfer/sec:     64.51K
 ```
 
-### 19th August 2024 (Returning a simple html page)
+| Metric             | Value        |
+|--------------------|--------------|
+| **Requests/sec**   | 545.98       |
+| **Transfer/sec**   | 64.51K       |
+| **Total Requests** | 32,805       |
+| **Data Transferred** | 3.79MB      |
+
+
+### 19th August 2024 
+
+Returning a simple html page
 
 ```bash
 projects/nashar_gah [main] $ wrk -t5 -c100 -d60s http://localhost:8080
-Running 1m test @ http://localhost:8080
-  5 threads and 100 connections
-  Thread Stats   Avg      Stdev     Max   +/- Stdev
-    Latency     1.83ms    6.06ms 190.01ms   95.57%
-    Req/Sec    24.65k     9.72k  100.80k    80.96%
-  7334360 requests in 1.00m, 25.33GB read
-Requests/sec: 122106.62
-Transfer/sec:    431.80M
 ```
+
+| Metric             | Value        |
+|--------------------|--------------|
+| **Requests/sec**   | 122,106.62   |
+| **Transfer/sec**   | 431.80M      |
+| **Total Requests** | 7,334,360    |
+| **Data Transferred** | 25.33GB     |
+
 
 ###  20th August
 
