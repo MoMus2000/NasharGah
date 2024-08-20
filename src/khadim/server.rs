@@ -77,7 +77,7 @@ impl Server{
                                 break
                             }
                         }
-                        conn.0.shutdown().await.unwrap();
+                        conn.0.shutdown().await.unwrap_or_else(|_|{})
                     });
                 }
                 Err(err) => {
@@ -92,7 +92,12 @@ impl Server{
         let mut temp_buffer = [0; 1024];
         let mut parsed_req_res : Option<Parser> = None;
         loop {
-            let index = stream.0.read(&mut temp_buffer).await.unwrap();
+            let index = match stream.0.read(&mut temp_buffer).await{
+                Ok(index) => index,
+                Err(_) => {
+                    break
+                }
+            };
             buffer.extend_from_slice(&temp_buffer[..index]);
             if let Some(parsed_req) = Server::check_parsed_result(&buffer){
                 if parsed_req_res.is_none(){
