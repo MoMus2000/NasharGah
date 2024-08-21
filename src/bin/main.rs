@@ -2,7 +2,7 @@ use nashar_gah::khadim::server::Server;
 use nashar_gah::khadim::response::{Request, ResponseWriter};
 use nashar_gah::khadim::http_status::HttpStatus;
 use nashar_gah::khadim::http_header::HttpHeader;
-use nashar_gah::api_callback;
+use nashar_gah::{api_callback, init};
 
 
 #[api_callback]
@@ -25,12 +25,12 @@ pub fn serve_homepage(_request: Request, mut writer: ResponseWriter) {
     writer.response()
 }
 
-#[tokio::main]
-pub async fn main() {
+#[init]
+fn main() -> Server{
     let port = "8080";
     let address = "127.0.0.1";
-    let mut server = Server::new(port, address).await.unwrap();
+    let mut server = Server::new(port, address).unwrap();
     server.add_route("/", "GET", serve_homepage);
     server.add_route("/call_back", "GET", callback_function);
-    server.listen().await;
+    server
 }

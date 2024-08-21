@@ -30,7 +30,6 @@ impl Router {
             callback_function,
             method
         };
-
         if self.router_elem_mapper.contains_key(path){
             return false;
         }

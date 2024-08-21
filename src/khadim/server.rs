@@ -17,7 +17,7 @@ pub struct Server{
 }
 
 impl Server{
-    pub async fn new(port: &str, address: &str) -> Result<Self, Error>{
+    pub fn new(port: &str, address: &str) -> Result<Self, Error>{
         let port = port.to_string();
         let port : u16 = port.parse()?;
         Server::validate_port(port)?;
@@ -47,9 +47,13 @@ impl Server{
         TcpListener::bind(self.address.clone()).await.map_err(Error::from)
     }
 
-    pub async fn listen(&mut self){
-        let listener = self.bind().await.unwrap();
+    pub async fn serve(&mut self) {
         println!("Listening on {}", self.address);
+        self.listen().await;
+    }
+
+    async fn listen(&mut self){
+        let listener = self.bind().await.unwrap();
         loop{
             match listener.accept().await {
                 Ok(mut conn) => {
