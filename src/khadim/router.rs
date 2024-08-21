@@ -4,18 +4,23 @@ use std::pin::Pin;
 use std::future::Future;
 
 use super::response::{Request, ResponseWriter};
+use super::caller::{default_404, default_500};
 
 type AsyncReturn = Result<Pin<Box<dyn Future<Output = String> + Send>>, Box<dyn std::error::Error>>;
 
 #[derive(Clone)]
 pub struct Router{
-    pub router_elem_mapper: HashMap<String, RouterElement>
+    pub router_elem_mapper: HashMap<String, RouterElement>,
+    pub not_found_func: Option<fn(Request, ResponseWriter) -> AsyncReturn >,
+    pub internal_server_error: Option<fn(Request, ResponseWriter) -> AsyncReturn >
 }
 
 impl Router {
     pub fn new() -> Router{
         Router{
-            router_elem_mapper: HashMap::new()
+            router_elem_mapper: HashMap::new(),
+            not_found_func: Some(default_404),
+            internal_server_error: Some(default_500)
         }
     }
 

@@ -113,19 +113,7 @@ impl Server{
         let fetched_func = match router.fetch_func(&parser.path, &parser.method){
             Some(func) => func,
             None => {
-                use super::caller::default_404;
-                let resp = match default_404(
-                    Request::new(parser),
-                    ResponseWriter::new(&stream.0, stream.1)
-                ){
-                    Ok(res) => res,
-                    Err(_) => {
-                        return
-                    },
-                };
-                stream.0.write_all(&resp.await.as_bytes()).await.unwrap();
-                stream.0.flush().await.unwrap();
-                return
+                router.not_found_func.unwrap()
             }
         };
         let resp = match fetched_func(
@@ -135,10 +123,17 @@ impl Server{
             Ok(result) => result,
             Err(e) => {
                 println!("Error {e}");
-                return
+                Box::pin(std::future::ready("Internal Server Error".to_string())) as Pin<Box<dyn Future<Output = String> + Send>>
             }
         };
-        stream.0.write_all(resp.await.as_bytes()).await.unwrap();
+        let mut resp = resp.await;
+        if resp == "Internal Server Error" {
+            resp = router.internal_server_error.unwrap()(
+                Request::new(parser.clone()),
+                ResponseWriter::new(&stream.0, stream.1)
+            ).unwrap().await;
+        }
+        stream.0.write_all(resp.as_bytes()).await.unwrap();
         stream.0.flush().await.unwrap();
     }
 
