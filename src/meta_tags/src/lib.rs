@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
-use quote::{quote, format_ident};
-use syn::{parse_macro_input, ItemFn, Stmt, Expr};
+use quote::quote;
+use syn::{parse_macro_input, ItemFn};
 
 #[proc_macro_attribute]
 pub fn api_callback(_attr: TokenStream, input: TokenStream) -> TokenStream {

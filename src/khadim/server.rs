@@ -47,13 +47,19 @@ impl Server{
         TcpListener::bind(self.address.clone()).await.map_err(Error::from)
     }
 
-    pub async fn serve(&mut self) {
+    pub async fn serve(&mut self) -> Result<(), Box<dyn std::error::Error>>{
         println!("Listening on {}", self.address);
-        self.listen().await;
+        match self.listen().await{
+            Ok(_) => {},
+            Err(_) => {
+                return Err("Server should not have crashed".into());
+            }
+        };
+        Ok(())
     }
 
-    async fn listen(&mut self){
-        let listener = self.bind().await.unwrap();
+    async fn listen(&mut self) -> Result<(), Box<dyn std::error::Error>>{
+        let listener = self.bind().await?;
         loop{
             match listener.accept().await {
                 Ok(mut conn) => {
