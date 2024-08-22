@@ -2,7 +2,7 @@
 use std::net::{IpAddr, SocketAddr};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
-use anyhow::{anyhow, Error, Result};
+use anyhow::{Error, Result};
 
 use super::{parser::Parser, response::{Request,ResponseWriter}, router::Router};
 
@@ -10,6 +10,7 @@ use std::pin::Pin;
 use std::future::Future;
 type AsyncReturn = Result<Pin<Box<dyn Future<Output = String> + Send>>, Box<dyn std::error::Error>>;
 
+#[derive(Debug, Clone)]
 pub struct Server{
     pub port: u16,
     pub address: String,
@@ -36,19 +37,15 @@ impl Server{
 
     fn validate_port(port: u16) -> Result<()>{
         match port{
-            0 => Err(anyhow!("Port 0 is reserved and cannot be used directly.")),
-            1..1024 => Err(anyhow!("Elevated ports are not currently supported.")),
-            1024..62535 => Ok(()),
-            _ => Err(anyhow!("Port Number is outside the valid range.")),
+            _ => Ok(())
         }
     }
 
     async fn bind(&self) -> Result<TcpListener, Error>{
         TcpListener::bind(self.address.clone()).await.map_err(Error::from)
     }
-
+    
     pub async fn serve(&mut self) -> Result<(), Box<dyn std::error::Error>>{
-        println!("Listening on {}", self.address);
         match self.listen().await{
             Ok(_) => {},
             Err(_) => {
@@ -57,9 +54,10 @@ impl Server{
         };
         Ok(())
     }
-
+    
     async fn listen(&mut self) -> Result<(), Box<dyn std::error::Error>>{
         let listener = self.bind().await?;
+        println!("Listening on {}", listener.local_addr().unwrap());
         loop{
             match listener.accept().await {
                 Ok(mut conn) => {

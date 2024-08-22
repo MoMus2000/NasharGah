@@ -37,7 +37,7 @@ pub fn init(_attr: TokenStream, input: TokenStream) -> TokenStream {
             let mut result = (|| {
                 #body
             })();
-            result.serve().await;
+            result.serve().await.unwrap();
         }
     };
 

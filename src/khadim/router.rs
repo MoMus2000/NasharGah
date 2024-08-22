@@ -8,7 +8,7 @@ use super::caller::{default_404, default_500};
 
 type AsyncReturn = Result<Pin<Box<dyn Future<Output = String> + Send>>, Box<dyn std::error::Error>>;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Router{
     pub router_elem_mapper: HashMap<String, RouterElement>,
     pub not_found_func: Option<fn(Request, ResponseWriter) -> AsyncReturn >,
