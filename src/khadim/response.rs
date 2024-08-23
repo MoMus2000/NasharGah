@@ -79,17 +79,28 @@ impl<'a> ResponseWriter<'a> {
             );
         }
 
+        let mut header_string = String::new();
+        for header in self.response_map.keys(){
+            if header.contains("Status") || header.contains("Content-Type") || 
+                header.contains("Content-Length") || header.contains("Body") { continue }
+            header_string.push_str(&format!("{}: {}\r\n", header, self.response_map.get(header).unwrap()));
+        }
+        header_string.push_str("\r\n");
+
         let payload = format!(
             "HTTP/1.1 {} \r\n\
             Content-Type: {}; charset=utf-8\r\n\
             Content-Length: {}\r\n\
-            \r\n\
+            {}\
             {}",
             self.response_map.get("Status").unwrap(),
             self.response_map.get("Content-Type").unwrap(),
             self.response_map.get("Content-Length").unwrap(),
+            header_string,
             self.response_map.get("Body").unwrap(),
         );
+
+        println!("{payload}");
 
         Ok(Box::pin(async move {
             payload

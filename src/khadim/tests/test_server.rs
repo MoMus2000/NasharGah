@@ -24,6 +24,13 @@ mod tests {
     }
 
     #[api_callback]
+    pub fn set_user_agent(_request: Request, mut writer: ResponseWriter) {
+        writer.set_status(HttpStatus::Ok);
+        writer.set_header(HttpHeader::UserAgent("Mustafa"));
+        writer.response()
+    }
+
+    #[api_callback]
     pub fn trigger_panic(_request: Request, mut writer: ResponseWriter){
         Err("An error occured")
     }
@@ -103,6 +110,30 @@ mod tests {
             }
         };
         server
+    }
+
+    #[tokio::test]
+    async fn test_user_agent(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+
+        server.add_route("/", "GET", set_user_agent);
+
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+
+        tokio::task::yield_now().await;
+
+        let headers = reqwest::get(format!("http://localhost:{port}/"))
+        .await
+        .unwrap();
+
+        let headers = headers.headers();
+        println!("{:?}", headers);
+        let user_agent = headers.get("User-Agent").unwrap();
+        assert_eq!(user_agent.to_str().unwrap(), "Mustafa")
     }
 
     #[tokio::test]
