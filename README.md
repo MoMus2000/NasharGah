@@ -1,6 +1,8 @@
 # NasharGah
 All Purpose Http Server
 
+![CI](https://github.com/MoMus2000/NasharGah/actions/workflows/nashargah-tests-rs.yml/badge.svg)
+
 [Performance Log](performance-log/README.md)
 
 ## Setup
