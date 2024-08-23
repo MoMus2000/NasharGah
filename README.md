@@ -43,14 +43,3 @@ fn main() -> Server{
     server
 }
 ```
-
-## M1 Macbook Tuning
-
-```bash
-# Increase TCP Buffer
-sudo sysctl -w net.inet.tcp.sendspace=262144
-sudo sysctl -w net.inet.tcp.recvspace=262144
-
-# Increase number of sockets
-ulimit -n 6553
-```
