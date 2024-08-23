@@ -24,6 +24,14 @@ mod tests {
     }
 
     #[api_callback]
+    pub fn handle_query_param(request: Request, mut writer: ResponseWriter){
+        writer.set_status(HttpStatus::Ok);
+        assert_eq!(request.request.query_params.as_ref().unwrap().get("foo").unwrap(), "bar");
+        assert_eq!(request.request.query_params.as_ref().unwrap().get("bar").unwrap(), "baz");
+        writer.response()
+    }
+
+    #[api_callback]
     pub fn set_user_agent(_request: Request, mut writer: ResponseWriter) {
         writer.set_status(HttpStatus::Ok);
         writer.set_header(HttpHeader::UserAgent("Mustafa"));
@@ -110,6 +118,28 @@ mod tests {
             }
         };
         server
+    }
+
+    #[tokio::test]
+    async fn test_query_param_parse(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+
+        server.add_route("/", "GET", handle_query_param);
+
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+
+        tokio::task::yield_now().await;
+
+        let status_code = reqwest::get(format!("http://localhost:{port}/?foo=bar&bar=baz"))
+        .await
+        .unwrap()
+        .status();
+
+        assert_eq!(status_code.as_str(), "200");
     }
 
     #[tokio::test]

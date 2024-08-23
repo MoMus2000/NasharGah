@@ -106,7 +106,8 @@ impl Server{
                 }
             };
             buffer.extend_from_slice(&temp_buffer[..index]);
-            if let Some(parsed_req) = Server::check_parsed_result(&buffer){
+            let base_address = &stream.0.local_addr().unwrap();
+            if let Some(parsed_req) = Server::check_parsed_result(&buffer, base_address){
                 if parsed_req_res.is_none(){
                     parsed_req_res = Some(parsed_req);
                 }
@@ -145,7 +146,7 @@ impl Server{
         stream.0.flush().await.unwrap();
     }
 
-    fn check_parsed_result(buffer: &[u8]) -> Option<Parser>{
+    fn check_parsed_result(buffer: &[u8], base_address: &SocketAddr) -> Option<Parser>{
         let mut headers = [httparse::EMPTY_HEADER; 64];
         let mut req = httparse::Request::new(&mut headers);
         let parsed_result = {
@@ -153,7 +154,7 @@ impl Server{
         };
         match parsed_result{
             Ok(httparse::Status::Complete(_)) => {
-                let parsed_req = Parser::new(req);
+                let parsed_req = Parser::new(req, base_address);
                 return Some(parsed_req)
             }
             Ok(httparse::Status::Partial) => {
