@@ -107,3 +107,24 @@ projects/nashar_gah [main] $ wrk -t8 -c500 -d15m http://localhost:8080
 | **Socket Errors (Read)**    | 656                  | 664          | 1,090                                  |
 | **Socket Errors (Write)**   | 0                    | 0            | 153                                    |
 | **Socket Errors (Timeout)** | 0                    | 0            | 94                                     |
+
+###  22nd August
+
+Load Testing, sending a html file and Benchmarking
+
+```bash
+projects/nashar_gah [main] $ wrk -t8 -c500 -d15m http://localhost:8080
+```
+
+| Metric             | Value          |
+|--------------------|----------------|
+| **Test Duration**  | 15 minutes      |
+| **Threads**        | 8              |
+| **Connections**    | 500            |
+| **Avg Latency**    | 5.21 ms        |
+| **Avg Req/Sec**    | 14.80k         |
+| **Total Requests** | 105.4M         |
+| **Total Data**     | 364.1 GB       |
+| **Socket Errors**  | Read: 648      |
+| **Req/Sec**        | 117,147.01     |
+| **Transfer/Sec**   | 414.26 MB      |
