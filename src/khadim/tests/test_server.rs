@@ -4,6 +4,7 @@
 mod tests {
     use std::sync::Arc;
     use std::sync::Mutex;
+    use std::time::Duration;
     use meta_tags::api_callback;
     use tokio::net::TcpListener;
 
@@ -11,6 +12,7 @@ mod tests {
     use crate::khadim::response::Request;
     use crate::khadim::http_status::HttpStatus;
     use crate::khadim::server::Server;
+    use crate::khadim::http_header::HttpHeader;
 
     const START : u8 = 0;
     const EXIT : u8 = 1;
@@ -50,6 +52,41 @@ mod tests {
         writer.response()
     }
 
+    #[api_callback]
+    pub fn serve_slow(_request: Request, mut writer: ResponseWriter){
+        writer.set_status(HttpStatus::Ok);
+        use std::thread;
+        thread::sleep(Duration::from_secs(1));
+        writer.response()
+    }
+
+    #[api_callback]
+    pub fn file_not_exist(_request: Request, mut writer: ResponseWriter){
+        writer.set_status(HttpStatus::Ok);
+        writer.set_body_from_html("./path_that_doesnt_exist.html")?;
+        writer.response()
+    }
+
+    
+    #[api_callback]
+    pub fn serve_json_payload(_request: Request, mut writer: ResponseWriter){
+        use serde::Serialize;
+        #[derive(Serialize)]
+        struct MyStruct {
+            field1: String,
+            field2: i32,
+        }
+        let my_struct = MyStruct {
+            field1: String::from("Hello"),
+            field2: 42,
+        };
+        let json_string = serde_json::to_string(&my_struct).unwrap();
+        writer.set_status(HttpStatus::Ok);
+        writer.set_header(HttpHeader::ContentType("application/json"));
+        writer.set_body(json_string);
+        writer.response()
+    }
+
     async fn fetch_port() -> u16{
         let address = "127.0.0.1:0";
         let listener = TcpListener::bind(&address).await.expect("Failed to bind to address");
@@ -66,6 +103,58 @@ mod tests {
             }
         };
         server
+    }
+
+    #[tokio::test]
+    async fn test_file_doesnot_exist_error(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+
+        server.add_route("/", "GET", file_not_exist);
+
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+
+        tokio::task::yield_now().await;
+
+        let status_code = reqwest::get(format!("http://localhost:{port}/"))
+        .await
+        .unwrap()
+        .status();
+        assert_eq!(status_code.as_str(), "500")
+
+    }
+
+    #[tokio::test]
+    async fn test_http_timeout(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+
+        server.add_route("/slow", "GET", serve_slow);
+
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+
+        tokio::task::yield_now().await;
+
+        let client = reqwest::Client::builder()
+        .timeout(Duration::from_millis(600))
+        .build()
+        .unwrap();
+
+        let response = client.get(format!("http://localhost:{port}/slow"))
+            .send()
+            .await;
+
+        match response {
+            Ok(_) => panic!("Expected a timeout error"),
+            Err(err) => assert!(err.is_timeout(), "Expected a timeout error but got: {}", err),
+        }
+
     }
 
     #[tokio::test]
@@ -98,6 +187,34 @@ mod tests {
         .unwrap()
         .status();
         assert_eq!(status_code.as_str(), "200")
+    }
+
+    #[tokio::test]
+    async fn test_json_reponse(){
+        let port = fetch_port().await;
+        let mut server = init_server(port);
+        server.add_route("/", "GET", serve_json_payload);
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+        tokio::task::yield_now().await;
+        let resp = reqwest::get(format!("http://localhost:{port}/"))
+        .await
+        .unwrap();
+
+        let status_code = resp.status();
+        assert_eq!(status_code.as_str(), "200");
+        let json = resp.text().await.unwrap();
+        assert!(json.len() > 0);
+        use serde::Deserialize;
+        #[derive(Deserialize)]
+        struct MyStruct {
+            field1: String,
+            field2: i32,
+        }
+        let my_struct: MyStruct = serde_json::from_str(&json).unwrap();
+        assert_eq!(my_struct.field1 , "Hello".to_string());
+        assert_eq!(my_struct.field2 , 42);
     }
 
     #[tokio::test]
@@ -163,7 +280,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_pass_put(){
+    async fn test_connection_persistence(){
         let port = fetch_port().await;
         let mut server = init_server(port);
         server.add_route("/", "PUT", serve_put);
@@ -171,14 +288,39 @@ mod tests {
             server.serve().await.unwrap();
         });
         tokio::task::yield_now().await;
-        let client = reqwest::Client::new();
-        let status_code = client
-        .put(format!("http://localhost:{port}/"))
-        .send()
-        .await
-        .unwrap()
-        .status();
-        assert_eq!(status_code.as_str(), "200")
+    }
+
+    #[tokio::test]
+    async fn test_pass_put(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+        server.add_route("/", "PUT", serve_put);
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+        tokio::task::yield_now().await;
+
+        // Make the first request
+        let client = reqwest::Client::builder()
+        .pool_max_idle_per_host(1) // Limit pool to 1 connection
+        .build().unwrap();
+
+        // Make the first request
+        let resp1 = client.get(format!("http://127.0.0.1:{}", port))
+            .header("Connection","keep-alive") // Request for a persistent connection
+            .send()
+            .await;
+        
+        println!("Response 1: {}", resp1.unwrap().text().await.unwrap());
+
+        // Make the second request
+        let resp2 = client.get(format!("http://127.0.0.1:{}", port))
+            .header("Connection","keep-alive") // Ensure persistent connection
+            .send()
+            .await;
+
+        println!("Response 2: {}", resp2.unwrap().text().await.unwrap());
     }
 
     #[tokio::test]

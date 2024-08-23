@@ -536,6 +536,8 @@ dependencies = [
  "httparse",
  "meta_tags",
  "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
 ]
 

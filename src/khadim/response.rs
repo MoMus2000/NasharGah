@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::{collections::HashMap, io::Read, net::SocketAddr};
 use tokio::net::TcpStream;
 use std::fmt;
@@ -39,13 +40,14 @@ impl<'a> ResponseWriter<'a> {
         self.set_response("Body".to_string(), body);
     }
 
-    pub fn set_body_from_html(&mut self, file_path: &str){
-        let mut file = std::fs::File::open(file_path).unwrap();
+    pub fn set_body_from_html(&mut self, file_path: &str) -> Result<(), Box<dyn Error>>{
+        let mut file = std::fs::File::open(file_path)?;
         let mut body = String::new();
-        file.read_to_string(&mut body).unwrap();
+        file.read_to_string(&mut body)?;
         self.set_response("Content-Length".to_string(), format!("{}", body.len()));
         self.set_response("Body".to_string(), body);
         self.set_content_type("text/html".to_string());
+        Ok(())
     }
 
     pub fn set_status(&mut self, status_code : impl fmt::Display) {
