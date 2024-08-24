@@ -118,6 +118,44 @@ impl Request{
         Request{request}
     }
 
+    pub fn parse_multipart_form(&self) -> Option<HashMap<String, String>>{
+        use multipart::server::Multipart;
+        use std::io::{Cursor, Read};
+
+        let mut form_fields = HashMap::new();
+        let content_type = &self.request.header.get("content-type").unwrap();
+        let boundary_prefix = "boundary=";
+        let boundary = content_type
+            .split(';')
+            .find(|&part| part.trim().starts_with(boundary_prefix))?
+            .trim()[boundary_prefix.len()..]
+            .to_string();
+
+        let cursor = Cursor::new(self.request.clone().body.unwrap());
+        let mut multipart = Multipart::with_body(cursor, boundary);
+
+        while let Ok(field) = multipart.read_entry() {
+            if field.is_none() {
+                break;
+            }
+            if field.as_ref().is_some(){
+                let header = field.as_ref().unwrap().headers.name.to_string();
+                if header == "file" {
+                    let mut file_content = Vec::new();
+                    field.unwrap().data.read_to_end(&mut file_content).unwrap();
+                }
+                else{
+                    let mut field_value = String::new();
+                    let name = field.as_ref().unwrap().headers.name.to_string();
+                    field.unwrap().data.read_to_string(&mut field_value).unwrap();
+                    form_fields.insert(name, field_value);
+                 }
+            }
+        }
+
+        Some(form_fields)
+    }
+
     pub fn parse_url_form(&self) -> Option<HashMap<String, String>>{
         use url::form_urlencoded;
 

@@ -45,8 +45,15 @@ mod tests {
     }
 
     #[api_callback]
-    pub fn process_multipart_form(_request: Request, mut writer: ResponseWriter){
-        todo!("Implement functionality to parse form");
+    pub fn process_multipart_form(request: Request, mut writer: ResponseWriter){
+        let multipart_form = request.parse_multipart_form();
+        if multipart_form.as_ref().unwrap().len() > 0{
+            assert_eq!(multipart_form.as_ref().unwrap().get("field1").unwrap(), "value1");
+            assert_eq!(multipart_form.as_ref().unwrap().get("field2").unwrap(), "value2");
+            writer.set_status("200");
+            return writer.response()
+        }
+        writer.set_status("500");
         writer.response()
     }
 
@@ -229,35 +236,35 @@ mod tests {
         assert_eq!(status_code.as_str(), "200");
     }
 
-    // #[tokio::test]
-    // async fn test_multipart_form_parsing(){
-    //     let port = fetch_port().await;
+    #[tokio::test]
+    async fn test_multipart_form_parsing(){
+        let port = fetch_port().await;
 
-    //     let mut server = init_server(port);
+        let mut server = init_server(port);
 
-    //     server.add_route("/", "POST", process_form);
+        server.add_route("/", "POST", process_multipart_form);
 
-    //     let _ = tokio::spawn(async move {
-    //         server.serve().await.unwrap();
-    //     });
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
 
-    //     tokio::task::yield_now().await;
+        tokio::task::yield_now().await;
 
-    //     let client = reqwest::Client::new();
+        let client = reqwest::Client::new();
 
-    //     let form = reqwest::multipart::Form::new()
-    //         .text("field1", "value1")
-    //         .text("field2", "value2");
+        let form = reqwest::multipart::Form::new()
+            .text("field1", "value1")
+            .text("field2", "value2");
 
-    //     let response = client
-    //         .post(format!("http://localhost:{}/", port))
-    //         .multipart(form)
-    //         .send()
-    //         .await;
+        let response = client
+            .post(format!("http://localhost:{}/", port))
+            .multipart(form)
+            .send()
+            .await;
 
-    //     let response = response.unwrap().status();
-    //     assert_eq!(response.as_str(), "200")
-    // }
+        let response = response.unwrap().status();
+        assert_eq!(response.as_str(), "200")
+    }
 
 
     #[tokio::test]
