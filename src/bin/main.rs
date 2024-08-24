@@ -13,7 +13,7 @@ pub fn callback_function(_request: Request, mut writer: ResponseWriter) {
         "key": "value"
     }
     "#.to_string());
-    writer.set_header(HttpHeader::ContentType("application/json"));
+    writer.set_header(HttpHeader::ContentType("application/json".to_string()));
     writer.response()
 }
 
@@ -21,7 +21,7 @@ pub fn callback_function(_request: Request, mut writer: ResponseWriter) {
 pub fn serve_homepage(_request: Request, mut writer: ResponseWriter) {
     writer.set_status(HttpStatus::Ok);
     writer.set_body_from_html("/Users/mmuhammad/Desktop/projects/nashar_gah/assets/index.html")?;
-    writer.set_header(HttpHeader::ContentType("text/html"));
+    writer.set_header(HttpHeader::ContentType("text/html".to_string()));
     writer.response()
 }
 

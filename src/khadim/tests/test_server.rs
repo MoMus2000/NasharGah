@@ -34,13 +34,49 @@ mod tests {
     #[api_callback]
     pub fn set_user_agent(_request: Request, mut writer: ResponseWriter) {
         writer.set_status(HttpStatus::Ok);
-        writer.set_header(HttpHeader::UserAgent("Mustafa"));
+        writer.set_header(HttpHeader::UserAgent("Mustafa".to_string()));
         writer.response()
     }
 
     #[api_callback]
     pub fn trigger_panic(_request: Request, mut writer: ResponseWriter){
         Err("An error occured")
+    }
+
+    #[api_callback]
+    pub fn process_form(_request: Request, mut writer: ResponseWriter){
+        todo!("Implement functionality to parse form");
+        writer.response()
+    }
+
+    #[api_callback]
+    pub fn process_redirect(_request: Request, mut writer: ResponseWriter){
+        let port = match request.request.body{
+            Some(data) => {
+                data
+            },
+            None => {
+                String::new()
+            }
+        };
+        let new_location = format!("http://localhost:{}/1",port);
+        writer.set_header(HttpHeader::Location(new_location));
+        writer.response()
+    }
+
+    #[api_callback]
+    pub fn process_payload(_request: Request, mut writer: ResponseWriter){
+        let payload = match request.request.body{
+            Some(data) => {
+                data
+            },
+            None => {
+                String::new()
+            }
+        };
+        assert_eq!(payload, format!("Hello"));
+        writer.set_status("201");
+        writer.response()
     }
 
     #[api_callback]
@@ -97,7 +133,7 @@ mod tests {
         };
         let json_string = serde_json::to_string(&my_struct).unwrap();
         writer.set_status(HttpStatus::Ok);
-        writer.set_header(HttpHeader::ContentType("application/json"));
+        writer.set_header(HttpHeader::ContentType("application/json".to_string()));
         writer.set_body(json_string);
         writer.response()
     }
@@ -119,6 +155,92 @@ mod tests {
         };
         server
     }
+
+    // #[tokio::test]
+    // async fn large_file_transfer(){
+    //     todo!("Write a test case to see if the server can handle large files")
+    // }
+
+    #[tokio::test]
+    async fn test_process_payload(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+
+        server.add_route("/", "POST", process_payload);
+
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+
+        tokio::task::yield_now().await;
+
+        let client = reqwest::Client::new();
+        let response = client
+            .post(format!("http://localhost:{}/", port))
+            .body("Hello")
+            .send()
+            .await;
+
+        let response = response.unwrap().status();
+        assert_eq!(response.as_str(), "201")
+
+    }
+
+    #[tokio::test]
+    async fn test_redirect(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+
+        server.add_route("/", "GET",process_redirect);
+        server.add_route("/1", "GET", serve_get);
+
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+
+        tokio::task::yield_now().await;
+
+        let status_code = reqwest::get(format!("http://localhost:{port}/"))
+        .await
+        .unwrap()
+        .status();
+
+        // I'm going to /, but the response is coming from /1
+
+        assert_eq!(status_code.as_str(), "200");
+    }
+
+    // #[tokio::test]
+    // async fn test_form_parsing(){
+    //     let port = fetch_port().await;
+
+    //     let mut server = init_server(port);
+
+    //     server.add_route("/", "POST", process_form);
+
+    //     let _ = tokio::spawn(async move {
+    //         server.serve().await.unwrap();
+    //     });
+
+    //     tokio::task::yield_now().await;
+
+    //     let client = reqwest::Client::new();
+
+    //     let form = reqwest::multipart::Form::new()
+    //         .text("field1", "value1")
+    //         .text("field2", "value2");
+
+    //     let response = client
+    //         .post(format!("http://localhost:{}/", port))
+    //         .multipart(form)
+    //         .send()
+    //         .await;
+
+    //     let response = response.unwrap().status();
+    //     assert_eq!(response.as_str(), "200")
+    // }
 
     #[tokio::test]
     async fn test_query_param_parse(){

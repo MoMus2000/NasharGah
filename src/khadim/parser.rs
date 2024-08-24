@@ -1,20 +1,22 @@
 use std::{collections::HashMap, error::Error, net::SocketAddr};
 use httparse::Request;
 use url::Url;
+use std::str;
 
 #[derive(Debug, Clone)]
 pub struct Parser{
     pub method: String,
     pub path: String,
     pub header: HashMap<String, String>,
-    pub query_params: Option<HashMap<String, String>>
+    pub query_params: Option<HashMap<String, String>>,
+    pub body: Option<String>
 }
 
 impl Parser{
-    pub fn new(payload: Request, base_address: &SocketAddr) -> Self{
+    pub fn new(payload: Request, base_address: &SocketAddr, buffer: &[u8], parsed_len: usize) -> Self{
         let method = payload.method.unwrap().to_string();
         let path = payload.path.unwrap().to_string();
-
+        let body = Parser::parse_body(&payload, buffer, parsed_len);
         let url_qp_tup = Parser::parse_url_and_get_query_params(&path, base_address);
 
         let url_qp_tup = match url_qp_tup{
@@ -26,6 +28,7 @@ impl Parser{
         let query_params = Some(url_qp_tup.1);
 
         let headers = payload.headers;
+
         let mut header_map : HashMap<String, String>= HashMap::new();
         for header in headers{
             if header_map.contains_key(header.name){
@@ -35,16 +38,16 @@ impl Parser{
                 header_map.insert(header.name.to_string(), value.to_string());
             }
         }
+
         let header = header_map;
-        Parser { method, path, header , query_params}
+
+        Parser { method, path, header , query_params, body}
     }
 
     fn parse_url_and_get_query_params(relative_path: &str, base_address: &SocketAddr) -> Result<(String, HashMap<String, String>), Box<dyn Error>>{
-        // Parse the URL
         let base = Url::parse(&format!("http://{}",&base_address))?;
         let full = base.join(relative_path)?;
 
-        // Get the query pairs
         let query_pairs = full.query_pairs();
 
         let mut query_map = HashMap::new();
@@ -54,6 +57,17 @@ impl Parser{
         }
 
         Ok((full.path().to_string(), query_map))
+    }
+
+    fn parse_body(payload: &Request, buffer: &[u8], parsed_len: usize) -> Option<String> {
+        match payload.method.unwrap() {
+            "POST" | "PUT" | "DELETE" => {
+                let body = &buffer[parsed_len..];
+                let body = Some(str::from_utf8(body).unwrap().to_string());
+                return body;
+            }
+            _ => return None
+        }
     }
 
 }
