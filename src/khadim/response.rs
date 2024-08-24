@@ -117,4 +117,26 @@ impl Request{
     pub fn new(request: Parser) -> Self{
         Request{request}
     }
+
+    pub fn parse_url_form(&self) -> Option<HashMap<String, String>>{
+        use url::form_urlencoded;
+
+        let body  = match &self.request.body{
+            Some(b) => b,
+            None => return None
+        };
+
+         // Parse the form-urlencoded data into a Vec of tuples
+        let parsed: Vec<(String, String)> = form_urlencoded::parse(body.as_bytes())
+        .into_owned()
+        .collect();
+
+        // Create a HashMap and insert the key-value pairs
+        let mut map = HashMap::new();
+        for (key, value) in parsed {
+            map.insert(key, value);
+        }
+
+        Some(map)
+    }
 }

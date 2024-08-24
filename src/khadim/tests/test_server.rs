@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
     use std::sync::Arc;
     use std::sync::Mutex;
     use std::time::Duration;
@@ -44,9 +45,25 @@ mod tests {
     }
 
     #[api_callback]
-    pub fn process_form(_request: Request, mut writer: ResponseWriter){
+    pub fn process_multipart_form(_request: Request, mut writer: ResponseWriter){
         todo!("Implement functionality to parse form");
         writer.response()
+    }
+
+    #[api_callback]
+    pub fn process_url_encoded_form(_request: Request, mut writer: ResponseWriter){
+        let form = match request.parse_url_form(){
+            Some(f) => f,
+            None => {
+                HashMap::new()
+            }
+        };
+        writer.set_status(HttpStatus::Ok);
+
+        if form.len() != 0{
+            return writer.response();
+        }
+        Err("An error occured")?
     }
 
     #[api_callback]
@@ -213,7 +230,7 @@ mod tests {
     }
 
     // #[tokio::test]
-    // async fn test_form_parsing(){
+    // async fn test_multipart_form_parsing(){
     //     let port = fetch_port().await;
 
     //     let mut server = init_server(port);
@@ -241,6 +258,37 @@ mod tests {
     //     let response = response.unwrap().status();
     //     assert_eq!(response.as_str(), "200")
     // }
+
+
+    #[tokio::test]
+    async fn test_url_encoded_form_parsing(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+
+        server.add_route("/", "POST", process_url_encoded_form);
+
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+
+        tokio::task::yield_now().await;
+
+        let client = reqwest::Client::new();
+
+        let mut form_data = HashMap::new();
+            form_data.insert("key1", "value1");
+            form_data.insert("key2", "value2");
+
+        let response = client
+            .post(format!("http://localhost:{}/", port))
+            .form(&form_data)
+            .send()
+            .await;
+
+        let response = response.unwrap().status();
+        assert_eq!(response.as_str(), "200")
+    }
 
     #[tokio::test]
     async fn test_query_param_parse(){
