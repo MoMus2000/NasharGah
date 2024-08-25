@@ -13,15 +13,22 @@ pub struct Parser{
 }
 
 impl Parser{
-    pub fn new(payload: Request, base_address: &SocketAddr, buffer: &[u8], parsed_len: usize) -> Self{
-        let method = payload.method.unwrap().to_string();
-        let path = payload.path.unwrap().to_string();
+    pub fn new(payload: Request, base_address: &SocketAddr, buffer: &[u8], parsed_len: usize) -> Result<Self, Box<dyn std::error::Error>>{
+        let method = match payload.method{
+            Some(verb) => verb.to_string(),
+            None  => return Err("Wrong method".into())
+        };
+
+        let path = match payload.path{
+            Some(p) => p.to_string(),
+            None => return Err("No path found".into())
+        };
         let body = Parser::parse_body(&payload, buffer, parsed_len);
         let url_qp_tup = Parser::parse_url_and_get_query_params(&path, base_address);
 
         let url_qp_tup = match url_qp_tup{
             Ok(qp) => (qp.0, qp.1),
-            Err(_) => panic!("Something went wrong here")
+            Err(e) => return Err(e.to_string().into())
         };
 
         let path = url_qp_tup.0;
@@ -41,7 +48,7 @@ impl Parser{
 
         let header = header_map;
 
-        Parser { method, path, header , query_params, body}
+        Ok(Parser { method, path, header , query_params, body})
     }
 
     fn parse_url_and_get_query_params(relative_path: &str, base_address: &SocketAddr) -> Result<(String, HashMap<String, String>), Box<dyn Error>>{
@@ -63,7 +70,14 @@ impl Parser{
         match payload.method.unwrap() {
             "POST" | "PUT" | "DELETE" => {
                 let body = &buffer[parsed_len..];
-                let body = Some(str::from_utf8(body).unwrap().to_string());
+                let body = {
+                    let b = str::from_utf8(body);
+                    let b = match b {
+                        Ok(valid) => valid.to_string(),
+                        Err(_) => return None
+                    };
+                    Some(b)
+                };
                 return body;
             }
             _ => return None

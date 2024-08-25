@@ -155,7 +155,10 @@ impl Server{
         match parsed_result{
             Ok(httparse::Status::Complete(parsed_len)) => {
                 let parsed_req = Parser::new(req, base_address, buffer, parsed_len);
-                return Some(parsed_req)
+                match parsed_req {
+                    Ok(req) => return Some(req),
+                    Err(_) => return None
+                }
             }
             Ok(httparse::Status::Partial) => {
                 None

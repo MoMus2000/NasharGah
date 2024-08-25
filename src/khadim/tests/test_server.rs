@@ -117,7 +117,16 @@ mod tests {
 
     #[api_callback]
     pub fn serve_put(_request: Request, mut writer: ResponseWriter){
-        writer.set_status(HttpStatus::Ok);
+        let payload = match request.request.body{
+            Some(data) => {
+                data
+            },
+            None => {
+                String::new()
+            }
+        };
+        assert_eq!(payload, "{id: 1}");
+        writer.set_status(HttpStatus::NoContent);
         writer.response()
     }
 
@@ -179,11 +188,6 @@ mod tests {
         };
         server
     }
-
-    // #[tokio::test]
-    // async fn large_file_transfer(){
-    //     todo!("Write a test case to see if the server can handle large files")
-    // }
 
     #[tokio::test]
     async fn test_process_payload(){
@@ -483,11 +487,12 @@ mod tests {
         let client = reqwest::Client::new();
         let status_code = client
         .put(format!("http://localhost:{port}/"))
+        .body("{id: 1}")
         .send()
         .await
         .unwrap()
         .status();
-        assert_eq!(status_code.as_str(), "200");
+        assert_eq!(status_code.as_str(), "204");
         let client = reqwest::Client::new();
         let status_code = client
         .delete(format!("http://localhost:{port}/"))
@@ -518,7 +523,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_connection_persistence(){
+    async fn test_serve_put(){
         let port = fetch_port().await;
         let mut server = init_server(port);
         server.add_route("/", "PUT", serve_put);
@@ -526,14 +531,24 @@ mod tests {
             server.serve().await.unwrap();
         });
         tokio::task::yield_now().await;
+
+        let client = reqwest::Client::new();
+        let status_code = client
+        .put(format!("http://localhost:{port}/"))
+        .body(r#"{id: 1}"#)
+        .send()
+        .await
+        .unwrap()
+        .status();
+        assert_eq!(status_code.as_str(), "204")
     }
 
     #[tokio::test]
-    async fn test_pass_put(){
+    async fn test_connection_persistence(){
         let port = fetch_port().await;
 
         let mut server = init_server(port);
-        server.add_route("/", "PUT", serve_put);
+        server.add_route("/", "GET", serve_get);
         let _ = tokio::spawn(async move {
             server.serve().await.unwrap();
         });
