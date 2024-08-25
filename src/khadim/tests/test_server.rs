@@ -48,8 +48,21 @@ mod tests {
     pub fn process_multipart_form(request: Request, mut writer: ResponseWriter){
         let multipart_form = request.parse_multipart_form();
         if multipart_form.as_ref().unwrap().len() > 0{
-            assert_eq!(multipart_form.as_ref().unwrap().get("field1").unwrap(), "value1");
-            assert_eq!(multipart_form.as_ref().unwrap().get("field2").unwrap(), "value2");
+            assert_eq!(multipart_form.as_ref().unwrap().get("field1").unwrap().generic_value.as_ref().unwrap(), "value1");
+            assert_eq!(multipart_form.as_ref().unwrap().get("field2").unwrap().generic_value.as_ref().unwrap(), "value2");
+            writer.set_status("200");
+            return writer.response()
+        }
+        writer.set_status("500");
+        writer.response()
+    }
+
+    #[api_callback]
+    pub fn process_form_file_upload(request: Request, mut writer: ResponseWriter){
+        let multipart_form = request.parse_multipart_form();
+        if multipart_form.as_ref().unwrap().len() > 0{
+            let file = multipart_form.as_ref().unwrap().get("file").unwrap().file.as_ref().unwrap();
+            assert!(file.len() > 0);
             writer.set_status("200");
             return writer.response()
         }
@@ -216,6 +229,43 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_form_file_upload(){
+        let port = fetch_port().await;
+
+        let mut server = init_server(port);
+
+        server.add_route("/", "POST", process_form_file_upload);
+
+        let _ = tokio::spawn(async move {
+            server.serve().await.unwrap();
+        });
+
+        tokio::task::yield_now().await;
+
+        let file = std::fs::read("assets/index.html").unwrap();
+    
+        // Create a part from the file
+        let file_part = reqwest::multipart::Part::bytes(file)
+            .file_name("file.txt") // Optionally set the file name
+            .mime_str("text/html")
+            .unwrap(); // Optionally set the MIME type
+        
+        // Create the form and add the file part
+        let form = reqwest::multipart::Form::new()
+            .part("file", file_part);
+        
+        let client = reqwest::Client::new();
+        let response = client
+            .post(format!("http://localhost:{}/",port))
+            .multipart(form)
+            .send()
+            .await.unwrap();
+
+        let status = response.status();
+        assert_eq!(status.as_str(), "200")
+    }
+
+    #[tokio::test]
     async fn test_redirect(){
         let port = fetch_port().await;
 
@@ -234,8 +284,6 @@ mod tests {
         .await
         .unwrap()
         .status();
-
-        // I'm going to /, but the response is coming from /1
 
         assert_eq!(status_code.as_str(), "200");
     }

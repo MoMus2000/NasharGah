@@ -113,12 +113,17 @@ pub struct Request {
     pub request: Parser,
 }
 
+pub struct MultiForm {
+    pub generic_value : Option<String>,
+    pub file: Option<Vec<u8>>
+}
+
 impl Request{
     pub fn new(request: Parser) -> Self{
         Request{request}
     }
 
-    pub fn parse_multipart_form(&self) -> Option<HashMap<String, String>>{
+    pub fn parse_multipart_form(&self) -> Option<HashMap<String, MultiForm>>{
         use multipart::server::Multipart;
         use std::io::{Cursor, Read};
 
@@ -142,13 +147,17 @@ impl Request{
                 let header = field.as_ref().unwrap().headers.name.to_string();
                 if header == "file" {
                     let mut file_content = Vec::new();
+                    let name = field.as_ref().unwrap().headers.name.to_string();
                     field.unwrap().data.read_to_end(&mut file_content).unwrap();
+                    let mf = MultiForm{generic_value: None, file: Some(file_content)};
+                    form_fields.insert(name, mf);
                 }
                 else{
                     let mut field_value = String::new();
                     let name = field.as_ref().unwrap().headers.name.to_string();
                     field.unwrap().data.read_to_string(&mut field_value).unwrap();
-                    form_fields.insert(name, field_value);
+                    let mf = MultiForm{generic_value: Some(field_value), file: None};
+                    form_fields.insert(name, mf);
                  }
             }
         }
@@ -177,4 +186,5 @@ impl Request{
 
         Some(map)
     }
+
 }
