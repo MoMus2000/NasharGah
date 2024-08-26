@@ -84,3 +84,20 @@ projects/nashar_gah [main] $ wrk -t8 -c500 -d15m http://localhost:8080
 | **Socket Errors**  | Read: 648      |
 | **Req/Sec**        | 117,147.01     |
 | **Transfer/Sec**   | 414.26 MB      |
+
+### 26th August
+
+Benchmarking axum against Nashargah
+
+| **Metric**                  | **NasharGah (Rust)** | **Axum**       | **Go (std)** | **Python (Flask - Gunicorn - Gevent)** |
+|-----------------------------|----------------------|----------------|--------------|----------------------------------------|
+| **RPS**                     | 112,358.62           | 39,037.55       | 64,853.99    | 6,604.18                               |
+| **Latency (Avg)**           | 5.26 ms              | 12.91 ms        | 9.99 ms      | 116.03 ms                              |
+| **Latency (Stdev)**         | 6.73 ms              | 6.21 ms         | 11.78 ms     | 133.06 ms                              |
+| **Latency (Max)**           | 208.31 ms            | 228.35 ms       | 242.86 ms    | 2.00 s                                 |
+| **Throughput**              | 397.33 MB/sec        | 141.36 MB/sec   | 234.84 MB/sec| 24.90 MB/sec                           |
+| **Total Requests**          | 101,128,099          | 35,137,103      | 58,373,504   | 5,943,958                              |
+| **Total Data Transferred**  | 349.23 GB            | 124.25 GB       | 206.42 GB    | 21.89 GB                               |
+| **Socket Errors (Read)**    | 656                  | 663             | 664          | 1,090                                  |
+| **Socket Errors (Write)**   | 0                    | 0               | 0            | 153                                    |
+| **Socket Errors (Timeout)** | 0                    | 0               | 0            | 94                                     |
